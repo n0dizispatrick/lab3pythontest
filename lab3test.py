@@ -174,9 +174,9 @@ x_init = [0, 0]
 # Find a value of x such that eval_solution is minimized.
 res = least_squares(eval_solution, x_init)
 
-print(f"Actual emitter location:    ({rover[0]:.1f}, {rover[1]:.1f}) ")
-print(f"Calculated emitter locaion: ({res.x[0]:.1f}, {res.x[1]:.1f})")
-print(f"Error in metres:            {np.linalg.norm(rover-res.x):.1f}")
+print(f"Actual rover location: ({rover[0]:.1f}, {rover[1]:.1f}) ")
+print(f"Calculated rover locaion: ({res.x[0]:.1f}, {res.x[1]:.1f})")
+print(f"Error: {np.linalg.norm(rover-res.x):.1f}")
 
 
 
