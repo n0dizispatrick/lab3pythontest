@@ -1,10 +1,8 @@
-# %%
 import numpy as np
 import math
-import matplotlib.pyplot as plt
 from scipy.optimize import least_squares
 
-def get_locus(node_1, node_2, time_1, time_2, v, delta_d, max_d):
+def get_hyperbola(node_1, node_2, time_1, time_2, v, delta_d, max_d):
     # two lines, x0/y0 and x1/y1 corresponding to the two intersections of the
     # circles. These will be concateneated at the end to form a single line.
     x0 = []
@@ -35,7 +33,7 @@ def get_locus(node_1, node_2, time_1, time_2, v, delta_d, max_d):
         circle1 = (circle1[0], circle1[1], circle1[2]+delta_d)
         circle2 = (circle2[0], circle2[1], circle2[2]+delta_d)
 
-    # Reverse so the concatenated locus is continous. Could reverse only
+    # Reverse so the concatenated hyperbola is continous. Could reverse only
     # x1/y1 instead if you wanted.
     x0 = list(reversed(x0))
     y0 = list(reversed(y0))
@@ -47,34 +45,30 @@ def get_locus(node_1, node_2, time_1, time_2, v, delta_d, max_d):
     return [x, y]
 
 
-def get_loci(rec_times, nodes, v, delta_d, max_d):
+def get_hyp(rec_times, nodes, v, delta_d, max_d):
     if(rec_times.shape[0] == 0):
-        return [] # return no loci
+        return [] # return no bola
     
-    loci = []
+    hyp = []
 
     # node that receives the transmission first.
     first_node = int(np.argmin(rec_times))
     # Iterate over all other nodes.
     for j in [x for x in range(nodes.shape[0]) if x!= first_node]:
-        # print('node', str(first_node), 'to', str(j))
-        locus = get_locus(node_1=(nodes[first_node][0],
+      
+             get_hyperbola(node_1=(nodes[first_node][0],
                                    nodes[first_node][1]),
                           node_2=(nodes[j][0], nodes[j][1]),
                           time_1=rec_times[first_node],
                           time_2=rec_times[j],
                           v=v, delta_d=delta_d, max_d=max_d)
-        # Sometimes empty locus is produced depending on geometry of the
-        # situation. Discard these.
-        if(len(locus[0]) > 0):
-            loci.append(locus)
-    return loci
+    
+      
+    return hyp
 
 
 def circle_intersection(circle1, circle2):
-    ''' Calculate intersection points of two circles.
-    from https://gist.github.com/xaedes/974535e71009fa8f090e
-    '''
+    
     x1,y1,r1 = circle1
     x2,y2,r2 = circle2
     # http://stackoverflow.com/a/3349134/798588
@@ -108,22 +102,18 @@ def circle_intersection(circle1, circle2):
 # Speed of Light
 v = 3e8
 
-# Time at which transmission is performed. Really just useful to
-# make sure the code is using relative times rather than depending on one
-# of the receive times being zero.
-t_0 = 2.5
 
-# Metre increments to radii of circles when generating locus of
+# Meter increments to radius of circles when generating hyperbola of
 # circle intersection.
 delta_d = int(100)
 
 # Max distance a transmission will be from the node that first
 # received the transmission. This puts an upper bound on the radii of the
-# circle, thus limiting the size of the locus to be near the nodes.
+# circle, thus limiting the size of the hyperbola to be near the nodes.
 max_d = int(20e3)
 
 # Noise for recieve time
-rec_time_noise_stdd = 1e-8
+rec_time_noise = 10e-9
 
 
 # Generate nodes with x and y coordinates.
@@ -134,22 +124,21 @@ print('nodes:\n', nodes)
 rover = (0,0)
 print('rover:', rover)
 
-# Distances from each node to the transmitting device,
-# simply triangle hypotenuse.
-# distances[i] is distance from node i to transmitter.
+# Distances from each node to the rover
+
 distances = np.array([ ( (x[0]-rover[0])**2 + (x[1]-rover[1])**2 )**0.5
                        for x in nodes])
 print('distances:', distances)
 
 # Time at which each node receives the transmission.
-rec_times = distances/v + t_0
+rec_times = distances/v 
 # Add noise to receive times
-rec_times += np.random.normal(loc=0, scale=rec_time_noise_stdd,
-                              size=3)
+rec_times += np.random.normal(loc=0, scale=rec_time_noise, size =3)
+                              
 print('rec_times:', rec_times)
 
-# Get the loci.
-loci = get_loci(rec_times, nodes, v, delta_d, max_d)
+# Get the bola.
+bola = get_hyp(rec_times, nodes, v, delta_d, max_d)
 
 # Solve the location of the transmitter.
 c = np.argmin(rec_times)
@@ -174,9 +163,6 @@ x_init = [0, 0]
 # Find a value of x such that eval_solution is minimized.
 res = least_squares(eval_solution, x_init)
 
-print(f"Actual rover location: ({rover[0]:.1f}, {rover[1]:.1f}) ")
+print(f"Actual rover location:    ({rover[0]}, {rover[1]}) ")
 print(f"Calculated rover locaion: ({res.x[0]:.1f}, {res.x[1]:.1f})")
 print(f"Error: {np.linalg.norm(rover-res.x):.1f}")
-
-
-
